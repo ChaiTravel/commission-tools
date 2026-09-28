@@ -1,0 +1,984 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chai Commission Tools</title>
+<style>
+  :root{
+    --ink:#242021; --ink2:#5E5B5C; --ink3:#848484; --line:#DEDCDC; --soft:#F5F4F4; --soft2:#ECEAEA;
+    --bg:#FFFFFF; --warn:#8A5200; --warnbg:#FFF6E8; --ok:#2E6B3F; --okbg:#EEF6F0; --bad:#A12A2A; --badbg:#FBEDED;
+    color-scheme:light;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 Arial,Helvetica,sans-serif}
+  .wrap{max-width:1100px;margin:0 auto;padding:24px 16px 56px}
+  header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;border-bottom:2px solid var(--ink);padding-bottom:12px}
+  header a.brand{display:block}
+  .logo{height:64px;width:auto;display:block}
+  .hinfo{text-align:right;color:var(--ink2);font-size:12px}
+  .hinfo b{display:block;color:var(--ink);font-size:16px}
+  .crumb{margin-top:14px;font-size:13px}
+  .crumb a{color:var(--ink2);text-decoration:none}
+  .crumb a:hover{color:var(--ink);text-decoration:underline}
+  h1{font-size:22px;margin:18px 0 4px;text-wrap:balance}
+  .lede{color:var(--ink2);max-width:70ch;margin:0}
+  h2{font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink2);margin:0 0 10px}
+  section{margin-top:22px}
+
+  /* home */
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:22px}
+  .tool{display:flex;flex-direction:column;gap:10px;border:1px solid var(--line);border-radius:8px;padding:18px;text-decoration:none;color:var(--ink);background:#fff;transition:border-color .15s, transform .15s}
+  .tool:hover{border-color:var(--ink);transform:translateY(-1px)}
+  .tool:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  .tool .vendor{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink3);font-weight:700}
+  .tool .name{font-size:18px;font-weight:700}
+  .tool .desc{color:var(--ink2);font-size:13px;flex:1}
+  .flow{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;flex-wrap:wrap}
+  .chip{border:1px solid var(--ink3);border-radius:4px;padding:2px 7px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px}
+  .chip.out{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .homenote{margin-top:26px;color:var(--ink2);font-size:13px;max-width:75ch}
+
+  /* tool pieces */
+  .drop{border:1.5px dashed var(--ink3);border-radius:6px;padding:22px;text-align:center;color:var(--ink2);cursor:pointer;background:var(--soft)}
+  .drop.over{border-color:var(--ink);background:var(--soft2)}
+  .drop b{color:var(--ink)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+  .tile{border:1px solid var(--line);border-radius:6px;padding:12px}
+  .tile .k{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--ink3)}
+  .tile .v{font-size:20px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums}
+  .tile .s{font-size:12px;color:var(--ink2);margin-top:2px}
+  .controls{display:flex;flex-wrap:wrap;gap:18px;align-items:center}
+  .field{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--ink2);font-weight:700}
+  .field input{font:inherit;font-weight:400;color:var(--ink);font-size:14px;padding:8px;border:1px solid var(--ink3);border-radius:6px;min-width:0}
+  .seg{display:inline-flex;border:1px solid var(--ink);border-radius:6px;overflow:hidden}
+  .seg button{border:0;background:#fff;color:var(--ink);padding:9px 16px;font:inherit;font-weight:700;cursor:pointer}
+  .seg button+button{border-left:1px solid var(--ink)}
+  .seg button.on{background:var(--ink);color:#fff}
+  input[type=number]{width:80px;padding:8px;border:1px solid var(--ink3);border-radius:6px;font:inherit}
+  label.inline{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+  .btn{background:var(--ink);color:#fff;border:0;border-radius:6px;padding:11px 18px;font:inherit;font-weight:700;cursor:pointer}
+  .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--ink)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  button:focus-visible,input:focus-visible,.drop:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  .note{padding:10px 12px;border-radius:6px;font-size:13px;margin-top:10px}
+  .note.warn{background:var(--warnbg);color:var(--warn)}
+  .note.ok{background:var(--okbg);color:var(--ok)}
+  .note.bad{background:var(--badbg);color:var(--bad)}
+  .tbl{overflow:auto;border:1px solid var(--line);border-radius:6px;max-height:520px;margin-top:12px}
+  table{border-collapse:collapse;width:100%;font-size:12.5px}
+  th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+  th{position:sticky;top:0;background:var(--ink);color:#fff;font-weight:700;font-size:11px;letter-spacing:.5px;text-transform:uppercase}
+  td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+  tr.mute td{color:var(--ink3)}
+  tr.sub td{font-weight:700;background:var(--soft)}
+  tfoot td{font-weight:700;background:var(--soft);position:sticky;bottom:0}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .muted{color:var(--ink2);font-size:12px}
+  .help{color:var(--ink2);font-size:13px;max-width:72ch}
+  .pill{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.5px;padding:1px 6px;border-radius:3px;background:var(--soft2);color:var(--ink2)}
+  footer{margin-top:40px;padding-top:12px;border-top:1px solid var(--line);color:var(--ink3);font-size:12px}
+  @media (prefers-reduced-motion: reduce){.tool{transition:none}.tool:hover{transform:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a class="brand" href="#" aria-label="Commission tools home"><img class="logo" alt="Chai Travel Advisors" src="data:image/png;base64,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"></a>
+    <div class="hinfo"><b id="hTitle">Commission Tools</b><span id="hSub">Turn vendor commission backup into files Trams can reconcile</span></div>
+  </header>
+  <nav class="crumb" id="crumb" hidden><a href="#">&larr; All tools</a></nav>
+
+  <!-- ============ HOME ============ -->
+  <main id="v-home" class="view">
+    <h1>Commission tools</h1>
+    <p class="lede">Pick the vendor you're reconciling. Everything runs in this browser tab. Statement files are read on this computer and never uploaded.</p>
+    <div class="tiles">
+      <a class="tool" href="#onyx">
+        <span class="vendor">Onyx CenterSource</span>
+        <span class="name">Onyx Fee Adjuster</span>
+        <span class="desc">Spreads Onyx's lump-sum fee (3.5% or 5%) across every booking so each line matches the invoice in Trams.</span>
+        <span class="flow"><span class="chip">Onyx .txt</span>&rarr;<span class="chip out">Adjusted .txt</span></span>
+      </a>
+      <a class="tool" href="#marriott">
+        <span class="vendor">Marriott</span>
+        <span class="name">Marriott to Trams</span>
+        <span class="desc">Converts the Marriott AP statement into a TACS file. Lines sharing a confirmation number are merged into one.</span>
+        <span class="flow"><span class="chip">AP .xls</span>&rarr;<span class="chip out">TACS .txt</span></span>
+      </a>
+      <a class="tool" href="#empire">
+        <span class="vendor">EmpireCLS</span>
+        <span class="name">EmpireCLS to Trams</span>
+        <span class="desc">Reads the Sales Commissions Report PDF and builds a TACS file, one line per trip, checked against the report total.</span>
+        <span class="flow"><span class="chip">Report .pdf</span>&rarr;<span class="chip out">TACS .txt</span></span>
+      </a>
+      <a class="tool" href="#hilton">
+        <span class="vendor">Hilton / FastPay</span>
+        <span class="name">Hilton Payment Report</span>
+        <span class="desc">Turns the TACS remittance XML into a branded summary by property with booking detail, invoice numbers and meeting IDs.</span>
+        <span class="flow"><span class="chip">TACS .xml</span>&rarr;<span class="chip out">Excel</span><span class="chip out">PDF</span></span>
+      </a>
+    </div>
+    <p class="homenote">Every converter checks its totals against the statement before you download. If the numbers don't tie, the page tells you and asks you to confirm before exporting.</p>
+  </main>
+
+  <!-- ============ ONYX ============ -->
+  <main id="v-onyx" class="view" hidden>
+    <h1>Onyx Fee Adjuster</h1>
+    <p class="lede">Onyx takes its fee as one lump sum at the end of the statement. This takes it off each booking's USD commission instead, so every line reconciles in Trams.</p>
+    <section>
+      <h2>1 · Load Onyx file</h2>
+      <div class="drop" data-for="o-file" tabindex="0" role="button" aria-label="Choose Onyx file">
+        <b>Drop the Onyx commission file here</b> or click to choose it<br><span class="muted">The file stays on this computer.</span>
+      </div>
+      <input type="file" id="o-file" hidden>
+      <div id="o-loadMsg"></div>
+    </section>
+    <div id="o-work" hidden>
+      <section><h2>2 · Statement summary</h2><div class="grid" id="o-tiles"></div></section>
+      <section>
+        <h2>3 · Fee to deduct from each booking</h2>
+        <div class="controls">
+          <div class="seg" id="o-seg">
+            <button type="button" data-p="3.5">3.5%</button><button type="button" data-p="5">5%</button><button type="button" data-p="custom">Custom</button>
+          </div>
+          <label class="inline" id="o-customWrap" hidden><input type="number" id="o-custom" step="0.01" min="0" max="100" value="4"> %</label>
+          <label class="inline"><input type="checkbox" id="o-tie" checked> Tie to Onyx fee total (spread rounding pennies)</label>
+        </div>
+        <div id="o-pctMsg"></div>
+      </section>
+      <section>
+        <h2>4 · Review</h2>
+        <div class="grid" id="o-resTiles"></div>
+        <div id="o-checkMsg"></div>
+        <div class="tbl"><table>
+          <thead><tr><th>#</th><th>Guest</th><th>Hotel</th><th>Conf #</th><th>Arrive</th><th>Cur</th><th class="n">Comm (local)</th><th class="n">Comm USD</th><th class="n">Fee</th><th class="n">Net USD</th></tr></thead>
+          <tbody id="o-rows"></tbody><tfoot id="o-foot"></tfoot>
+        </table></div>
+      </section>
+      <section>
+        <h2>5 · Export</h2>
+        <div class="actions">
+          <button class="btn" id="o-dl" type="button">Download adjusted file for Trams</button>
+          <button class="btn ghost" id="o-dlcsv" type="button">Download fee detail (CSV)</button>
+          <span class="muted" id="o-outName"></span>
+        </div>
+        <p class="help">Only the USD commission on each booking line changes, plus the matching totals on the trailer (BT) line. Every other field is written back exactly as Onyx sent it.</p>
+      </section>
+    </div>
+  </main>
+
+  <!-- ============ MARRIOTT ============ -->
+  <main id="v-marriott" class="view" hidden>
+    <h1>Marriott to Trams</h1>
+    <p class="lede">Converts the Marriott AP statement (.xls, "Statement Detail" sheet) into a TACS ELEC file. Lines with the same confirmation number at the same property become one line with combined revenue and commission.</p>
+    <section>
+      <h2>1 · Load Marriott statement</h2>
+      <div class="drop" data-for="m-file" tabindex="0" role="button" aria-label="Choose Marriott statement">
+        <b>Drop the Marriott AP statement here</b> or click to choose it<br><span class="muted">.xls or .xlsx · the file stays on this computer.</span>
+      </div>
+      <input type="file" id="m-file" accept=".xls,.xlsx" hidden>
+      <div id="m-loadMsg"></div>
+    </section>
+    <div id="m-work" hidden>
+      <section><h2>2 · Summary</h2><div class="grid" id="m-tiles"></div><div id="m-check"></div></section>
+      <section>
+        <h2>3 · Review</h2>
+        <p class="help">The currency conversion fee is not adjusted here. If the statement has one, remove that line in Excel and adjust the commissions before loading the file, as today.</p>
+        <div class="tbl"><table>
+          <thead><tr><th>#</th><th>Guest</th><th>Property</th><th>Conf #</th><th>Arrive</th><th>Depart</th><th>Code</th><th>Cur</th><th class="n">Revenue</th><th class="n">Hotel Comm</th><th class="n">Comm Paid</th><th class="n">Lines</th></tr></thead>
+          <tbody id="m-rows"></tbody><tfoot id="m-foot"></tfoot>
+        </table></div>
+      </section>
+      <section>
+        <h2>4 · Export</h2>
+        <label class="inline" id="m-ackWrap" hidden><input type="checkbox" id="m-ack"> Totals don't match. I've reviewed this and want to download anyway.</label>
+        <div class="actions" style="margin-top:10px">
+          <button class="btn" id="m-dl" type="button">Download TACS file for Trams</button>
+          <span class="muted" id="m-outName"></span>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- ============ EMPIRE ============ -->
+  <main id="v-empire" class="view" hidden>
+    <h1>EmpireCLS to Trams</h1>
+    <p class="lede">Reads the EmpireCLS Sales Commissions Report PDF and builds a TACS ELEC file with one line per trip. Enter the check or EFT number and the payment date from the deposit.</p>
+    <section>
+      <h2>1 · Payment details</h2>
+      <div class="controls">
+        <label class="field" for="e-ref">Check / EFT number<input id="e-ref" type="text" inputmode="numeric" autocomplete="off" placeholder="e.g. 104233"></label>
+        <label class="field" for="e-date">Payment date<input id="e-date" type="date"></label>
+      </div>
+    </section>
+    <section>
+      <h2>2 · Load commission report</h2>
+      <div class="drop" data-for="e-file" tabindex="0" role="button" aria-label="Choose EmpireCLS report">
+        <b>Drop the EmpireCLS Sales Commissions Report here</b> or click to choose it<br><span class="muted">.pdf · the file stays on this computer.</span>
+      </div>
+      <input type="file" id="e-file" accept=".pdf" hidden>
+      <div id="e-loadMsg"></div>
+    </section>
+    <div id="e-work" hidden>
+      <section><h2>3 · Summary</h2><div class="grid" id="e-tiles"></div><div id="e-check"></div></section>
+      <section>
+        <h2>4 · Review</h2>
+        <div class="tbl"><table>
+          <thead><tr><th>#</th><th>Passenger</th><th>Pickup</th><th>Res #</th><th>Service area</th><th class="n">Comm base</th><th class="n">Commission</th></tr></thead>
+          <tbody id="e-rows"></tbody><tfoot id="e-foot"></tfoot>
+        </table></div>
+      </section>
+      <section>
+        <h2>5 · Export</h2>
+        <label class="inline" id="e-ackWrap" hidden><input type="checkbox" id="e-ack"> Totals don't match. I've reviewed this and want to download anyway.</label>
+        <div class="actions" style="margin-top:10px">
+          <button class="btn" id="e-dl" type="button">Download TACS file for Trams</button>
+          <span class="muted" id="e-outName"></span>
+        </div>
+        <div id="e-dlMsg"></div>
+      </section>
+    </div>
+  </main>
+
+  <!-- ============ HILTON ============ -->
+  <main id="v-hilton" class="view" hidden>
+    <h1>Hilton Payment Report</h1>
+    <p class="lede">Turns the TACS remittance XML from the Hilton payment email into a branded payment summary by property with full booking detail. Add the matching <code>_ELECMP.txt</code> from the same email to fill in meeting IDs.</p>
+    <section>
+      <h2>1 · Load TACS files</h2>
+      <div class="drop" data-for="h-file" tabindex="0" role="button" aria-label="Choose Hilton TACS files">
+        <b>Drop the <code>_MPPEROm.xml</code> file here</b>, plus the <code>_ELECMP.txt</code> if you have it<br><span class="muted">You can drop both at once · the files stay on this computer.</span>
+      </div>
+      <input type="file" id="h-file" accept=".xml,.txt" multiple hidden>
+      <div id="h-loadMsg"></div>
+    </section>
+    <div id="h-work" hidden>
+      <section><h2>2 · Payment summary by property</h2><div class="grid" id="h-tiles"></div>
+        <div class="tbl"><table>
+          <thead><tr><th>Property</th><th>Location</th><th>Meeting ID</th><th>Invoice #</th><th class="n">Bookings</th><th class="n">Room revenue</th><th class="n">Commission</th><th class="n">Eff. rate</th></tr></thead>
+          <tbody id="h-sum"></tbody><tfoot id="h-sumFoot"></tfoot>
+        </table></div>
+      </section>
+      <section>
+        <h2>3 · Export</h2>
+        <div class="actions">
+          <button class="btn" id="h-xlsx" type="button">Download Excel</button>
+          <button class="btn ghost" id="h-pdf" type="button">Download PDF</button>
+          <span class="muted" id="h-outName"></span>
+        </div>
+        <div id="h-dlMsg"></div>
+      </section>
+      <section>
+        <h2>Booking detail</h2>
+        <div class="tbl"><table>
+          <thead><tr><th>Guest</th><th>Confirmation</th><th>Type</th><th>Arrival</th><th>Departure</th><th class="n">Nts</th><th>Property</th><th>Invoice #</th><th class="n">Revenue</th><th class="n">Commission</th></tr></thead>
+          <tbody id="h-detail"></tbody>
+        </table></div>
+      </section>
+    </div>
+  </main>
+
+  <footer>Chai Travel Advisors · internal commission tools · files are processed in your browser only</footer>
+</div>
+<script>
+(function(){
+'use strict';
+/* ================= shared ================= */
+const CDN = {
+  xlsx:  'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+  pdfjs: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+  pdfw:  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
+  exceljs:'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js',
+  jspdf: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+  autotable:'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js'
+};
+const loaded = {};
+function loadScript(url){
+  if (!loaded[url]) loaded[url] = new Promise((res, rej) => {
+    const s = document.createElement('script'); s.src = url; s.onload = res;
+    s.onerror = () => rej(new Error('Could not load a helper library. Check the internet connection and try again.'));
+    document.head.appendChild(s);
+  });
+  return loaded[url];
+}
+
+// Chai agency details written into TACS files (same values as the TACS Converter program)
+const AGENCY = {
+  tacsId:'A837318', iata:'33643864', legal:'CHAI TRAVEL ACQUISITIONS LLC', name:'CHAI TRAVEL GROUP', attn:'MICHAEL LIBEN',
+  addr1:'307 7TH AVE', addr2:'1107', city:'NEW YORK', state:'NY', zip:'10001', country:'US'
+};
+const TACS_HEADER = 'Record Type|TACS Record ID|Last Name|First Name|Txn Cd|Confirmation|Arrival|Departure|Revenue|Report Com|Report Currency|Pay Com|Pay Currency|Hotel Group Code|Hotel Group Name|Property Code|Property Name|Property Addr1|Property Addr2|Property City|Property State Code|Property Postal Code|Property Country|Property tax id|Holdback Currency|Holdback|Fee|Payee ID from Payor|Tacs agency Id|Iata|Arc_num|Agency Legal Name|Agency Name|Agency Attn|Agency Addr1|Agency Addr2|Agency City|Agency State Code|Agency Zip|Agency Country Code|Property Phone|Payment ID|Cheque Number|Pay Date|';
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+const m2 = c => (c < 0 ? '-' : '') + '$' + (Math.abs(c) / 100).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+const n2 = c => (c < 0 ? '-' : '') + (Math.abs(c) / 100).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+const cents = v => Math.round((Number(v) || 0) * 100);
+const f2 = c => (c < 0 ? '-' : '') + (Math.floor(Math.abs(c) / 100)) + '.' + String(Math.abs(c) % 100).padStart(2, '0');
+const note = (el, cls, html) => { $(el).innerHTML = html ? `<div class="note ${cls}">${html}</div>` : ''; };
+const tiles = (el, list) => { $(el).innerHTML = list.map(t => `<div class="tile"><div class="k">${esc(t[0])}</div><div class="v">${t[1]}</div><div class="s">${esc(t[2] || '')}</div></div>`).join(''); };
+const ymdSlash = d => /^\d{8}$/.test(d) ? `${d.slice(4,6)}/${d.slice(6,8)}/${d.slice(0,4)}` : d;
+
+function saveFile(name, data, type){
+  const blob = data instanceof Blob ? data : new Blob([data], {type});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+}
+function readAs(file, how){
+  return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(new Error('Could not read ' + file.name)); r[how](file); });
+}
+function wireDrop(dropEl, onFiles){
+  const input = $(dropEl.dataset.for);
+  dropEl.addEventListener('click', () => input.click());
+  dropEl.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
+  ['dragenter','dragover'].forEach(t => dropEl.addEventListener(t, e => { e.preventDefault(); dropEl.classList.add('over'); }));
+  ['dragleave','drop'].forEach(t => dropEl.addEventListener(t, e => { e.preventDefault(); dropEl.classList.remove('over'); }));
+  dropEl.addEventListener('drop', e => { if (e.dataTransfer.files.length) onFiles([...e.dataTransfer.files]); });
+  input.addEventListener('change', () => { if (input.files.length) onFiles([...input.files]); input.value = ''; });
+}
+
+// One TACS ELEC detail line. Field order matches Trams' TACS import (and the TACS Converter program).
+function tacsLine(o){
+  const f = ['G', `${o.paymentId}.1.${o.i}.0.0.F${o.tag}.0`, o.last, o.first, o.code, o.conf, o.arrival, o.departure,
+    f2(o.revenue), f2(o.reportCom), o.reportCcy, f2(o.payCom), 'USD', o.groupCode, o.groupName, o.propCode, o.propName,
+    o.addr1 || '', o.addr2 || '', o.city, o.state, o.postal || '', o.country, o.taxId || '', 'USD', '0.00', '0.00',
+    o.iata, AGENCY.tacsId, o.iata, '', AGENCY.legal, AGENCY.name, AGENCY.attn, AGENCY.addr1, AGENCY.addr2, AGENCY.city,
+    AGENCY.state, AGENCY.zip, AGENCY.country, o.phone || '', o.paymentId, '0', o.payDate];
+  return f.join('|') + '|';
+}
+const tacsFile = lines => [TACS_HEADER].concat(lines).join('\r\n') + '\r\n';
+const tacsName = (paymentId, tag) => `${AGENCY.tacsId}_0${paymentId}_${tag}_ELEC.txt`;
+const digits = s => String(s || '').replace(/\D/g, '');
+
+/* ================= router ================= */
+const VIEWS = {
+  home:{t:'Commission Tools', s:'Turn vendor commission backup into files Trams can reconcile'},
+  onyx:{t:'Onyx Fee Adjuster', s:'Spread the Onyx fee across each booking'},
+  marriott:{t:'Marriott to Trams', s:'AP statement to TACS import file'},
+  empire:{t:'EmpireCLS to Trams', s:'Commission report PDF to TACS import file'},
+  hilton:{t:'Hilton Payment Report', s:'TACS remittance XML to branded Excel and PDF'}
+};
+function route(){
+  const key = (location.hash || '').replace('#','');
+  const v = VIEWS[key] ? key : 'home';
+  document.querySelectorAll('.view').forEach(el => el.hidden = el.id !== 'v-' + v);
+  $('crumb').hidden = v === 'home';
+  $('hTitle').textContent = VIEWS[v].t; $('hSub').textContent = VIEWS[v].s;
+  document.title = v === 'home' ? 'Chai Commission Tools' : VIEWS[v].t + ' · Chai';
+  window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', route);
+route();
+
+/* ================= ONYX FEE ADJUSTER ================= */
+(function(){
+  const RC = {id:1, conf:9, last:13, first:14, arrive:17, commLocal:24, cur:25, usd:26, hotel:31};
+  const BT = {count:1, usd:7, fee:8, net:10};
+  let src = null, pct = 5, last = null;
+  const toC = s => { s = String(s).trim(); if (!s) return 0; const neg = s.startsWith('-'); const n = parseInt(s.replace(/^-/, ''), 10) || 0; return neg ? -n : n; };
+  const fmtField = (c, w) => { const neg = c < 0; const d = String(Math.abs(c)); const width = neg ? w - 1 : w; if (d.length > width) throw new Error('Amount too large for field'); return (neg ? '-' : '') + d.padStart(width, '0'); };
+
+  wireDrop(document.querySelector('[data-for="o-file"]'), async files => {
+    try { parse(files[0].name, await readAs(files[0], 'readAsText')); }
+    catch (err) { $('o-work').hidden = true; note('o-loadMsg', 'bad', esc(err.message)); }
+  });
+
+  function parse(name, text){
+    const eol = text.includes('\r\n') ? '\r\n' : '\n';
+    const trailingEol = text.endsWith(eol);
+    const raw = text.split(eol); if (trailingEol) raw.pop();
+    const lines = raw.map(l => l.split('|'));
+    const rcIdx = [], btIdx = [];
+    lines.forEach((f, i) => { if (f[0] === 'RC') rcIdx.push(i); else if (f[0] === 'BT') btIdx.push(i); });
+    if (!rcIdx.length) throw new Error('No booking (RC) lines found. Is this an Onyx commission file?');
+    if (btIdx.length !== 1) throw new Error('Expected exactly one trailer (BT) line; found ' + btIdx.length + '.');
+    const bad = rcIdx.filter(i => lines[i].length < 28 || lines[i][27].trim() !== 'USD');
+    if (bad.length) throw new Error(bad.length + ' booking line(s) do not have USD in the payment-currency field. Layout not recognized.');
+    src = {name, eol, trailingEol, lines, rcIdx, btIdx: btIdx[0]};
+    const bt = lines[src.btIdx];
+    const usd = rcIdx.reduce((a, i) => a + toC(lines[i][RC.usd]), 0);
+    const fee = toC(bt[BT.fee]), btUsd = toC(bt[BT.usd]), net = toC(bt[BT.net]);
+    Object.assign(src, {fee, usd, net, implied: usd ? fee / usd * 100 : 0});
+    const checks = [];
+    if (btUsd !== usd) checks.push(`Trailer USD total ${m2(btUsd)} does not equal the sum of bookings ${m2(usd)}.`);
+    if (btUsd - fee !== net) checks.push(`Trailer net ${m2(net)} does not equal commission minus fee (${m2(btUsd - fee)}).`);
+    if (toC(bt[BT.count]) !== rcIdx.length) checks.push(`Trailer says ${toC(bt[BT.count])} bookings; file has ${rcIdx.length}.`);
+    note('o-loadMsg', checks.length ? 'warn' : 'ok', checks.length ? checks.map(esc).join('<br>') : `Loaded <b>${esc(name)}</b>: ${rcIdx.length} bookings, totals check out.`);
+    tiles('o-tiles', [
+      ['Bookings', rcIdx.length, 'Statement ' + ymdSlash(lines[0][4] || '')],
+      ['Commission USD', m2(usd), 'Before Onyx fee'],
+      ['Onyx fee (lump sum)', m2(fee), src.implied.toFixed(2) + '% of commission'],
+      ['Net payment', m2(net), 'What Onyx actually paid']]);
+    if (fee > 0) pct = Math.abs(src.implied - 3.5) < Math.abs(src.implied - 5) ? 3.5 : 5;
+    const off = fee > 0 && Math.abs(src.implied - pct) >= 0.1;
+    setPct(off ? 'custom' : pct, off ? +src.implied.toFixed(2) : null);
+    $('o-tie').checked = fee > 0; $('o-tie').disabled = fee === 0;
+    $('o-outName').textContent = 'Saves as ' + outName();
+    $('o-work').hidden = false;
+  }
+
+  $('o-seg').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setPct(b.dataset.p === 'custom' ? 'custom' : +b.dataset.p); });
+  $('o-custom').addEventListener('input', () => { pct = parseFloat($('o-custom').value) || 0; compute(); });
+  $('o-tie').addEventListener('change', compute);
+  function setPct(p, customVal){
+    [...$('o-seg').children].forEach(b => b.classList.toggle('on', String(b.dataset.p) === String(p)));
+    $('o-customWrap').hidden = p !== 'custom';
+    if (p === 'custom') { if (customVal != null) $('o-custom').value = customVal; pct = parseFloat($('o-custom').value) || 0; }
+    else pct = p;
+    compute();
+  }
+
+  function compute(){
+    if (!src) return;
+    const L = src.lines, rate = pct / 100;
+    const items = src.rcIdx.map(i => { const usd = toC(L[i][RC.usd]); const exact = usd > 0 ? usd * rate : 0; return {i, usd, exact, fee: Math.round(exact)}; });
+    let sum = items.reduce((a, x) => a + x.fee, 0);
+    const straight = sum, eligible = items.filter(x => x.usd > 0), target = src.fee;
+    let tied = false, msg = '', cls = 'ok';
+    if ($('o-tie').checked && target > 0) {
+      const diff = target - sum;
+      if (Math.abs(diff) <= eligible.length && Math.abs(src.implied - pct) < 0.25) {
+        const order = [...eligible].sort((a, b) => diff > 0 ? (a.fee - a.exact) - (b.fee - b.exact) : (b.fee - b.exact) - (a.fee - a.exact));
+        for (let k = 0; k < Math.abs(diff); k++) order[k].fee += Math.sign(diff);
+        sum = target; tied = true;
+        msg = diff === 0 ? `Straight ${pct}% per booking already equals the Onyx fee of ${m2(target)}.`
+          : `Straight ${pct}% per booking comes to ${m2(straight)}. ${Math.abs(diff)} booking(s) got a 1¢ ${diff > 0 ? 'increase' : 'decrease'} so fees total exactly ${m2(target)}.`;
+      } else {
+        cls = 'warn';
+        msg = `${pct}% per booking comes to ${m2(straight)}, but the Onyx fee on this statement is ${m2(target)} (${src.implied.toFixed(2)}%). Check the rate. Using straight ${pct}% with no penny spreading; the ${m2(target - straight)} difference stays on the trailer as a fee.`;
+      }
+    } else if (target > 0 && straight !== target) {
+      cls = Math.abs(target - straight) > eligible.length ? 'warn' : 'ok';
+      msg = `Straight ${pct}% totals ${m2(straight)} vs. Onyx fee ${m2(target)}. The ${m2(target - straight)} difference stays on the trailer as a fee.`;
+    }
+    const skipped = items.length - eligible.length;
+    if (skipped) msg += ` ${skipped} booking(s) with $0 (or negative) commission get no fee and are left unchanged.`;
+    note('o-pctMsg', cls, msg);
+
+    const out = L.map(f => f.slice());
+    items.forEach(x => { const f = out[x.i]; f[RC.usd] = fmtField(x.usd - x.fee, f[RC.usd].length); });
+    const bt = out[src.btIdx];
+    const newUsd = items.reduce((a, x) => a + x.usd - x.fee, 0), newFee = src.fee - sum, newNet = newUsd - newFee, netOk = newNet === src.net;
+    bt[BT.usd] = fmtField(newUsd, bt[BT.usd].length); bt[BT.fee] = fmtField(newFee, bt[BT.fee].length); bt[BT.net] = fmtField(newNet, bt[BT.net].length);
+    const text = out.map(f => f.join('|')).join(src.eol) + (src.trailingEol ? src.eol : '');
+    last = {items, text, newUsd, sum};
+    tiles('o-resTiles', [
+      ['Fee spread to bookings', m2(sum), pct + '% ' + (tied ? '· tied to Onyx' : 'straight')],
+      ['Fee left on trailer', m2(newFee), newFee === 0 ? 'Fully allocated' : 'Not allocated to bookings'],
+      ['New commission USD', m2(newUsd), 'Sum of booking lines'],
+      ['Net payment', m2(newNet), netOk ? 'Matches Onyx deposit' : 'Does not match']]);
+    note('o-checkMsg', 'bad', netOk ? '' : `Net ${m2(newNet)} does not match the Onyx deposit ${m2(src.net)}. Do not import this file.`);
+    $('o-dl').disabled = !netOk;
+    $('o-rows').innerHTML = items.map((x, n) => { const f = L[x.i];
+      return `<tr class="${x.usd > 0 ? '' : 'mute'}"><td>${n + 1}</td><td>${esc([f[RC.last].trim(), f[RC.first].trim()].filter(Boolean).join(', '))}</td><td>${esc(f[RC.hotel].trim())}</td><td>${esc(f[RC.conf].trim())}</td><td>${ymdSlash(f[RC.arrive])}</td><td>${esc(f[RC.cur])}</td><td class="n">${n2(toC(f[RC.commLocal]))}</td><td class="n">${n2(x.usd)}</td><td class="n">${n2(-x.fee)}</td><td class="n"><b>${n2(x.usd - x.fee)}</b></td></tr>`; }).join('');
+    $('o-foot').innerHTML = `<tr><td></td><td colspan="6">Totals · ${items.length} bookings</td><td class="n">${n2(src.usd)}</td><td class="n">${n2(-sum)}</td><td class="n">${n2(newUsd)}</td></tr>`;
+  }
+  const outName = () => src.name.replace(/(\.[^.]*)?$/, m => '_ADJ' + (m || '.txt'));
+  $('o-dl').addEventListener('click', () => { if (last) saveFile(outName(), last.text, 'text/plain'); });
+  $('o-dlcsv').addEventListener('click', () => {
+    if (!last) return;
+    const q = v => '"' + String(v).replace(/"/g, '""') + '"';
+    const rows = [['Onyx ID','Guest','Hotel','Confirmation','Arrive','Currency','Commission Local','Commission USD','Fee %','Fee USD','Net USD']];
+    last.items.forEach(x => { const f = src.lines[x.i];
+      rows.push([f[RC.id], [f[RC.last].trim(), f[RC.first].trim()].filter(Boolean).join(', '), f[RC.hotel].trim(), f[RC.conf].trim(), ymdSlash(f[RC.arrive]), f[RC.cur], f2(toC(f[RC.commLocal])), f2(x.usd), x.usd > 0 ? pct : 0, f2(x.fee), f2(x.usd - x.fee)]); });
+    rows.push(['','TOTAL','','','','','',f2(src.usd),'',f2(last.sum),f2(last.newUsd)]);
+    saveFile(src.name.replace(/\.[^.]*$/, '') + '_fee_detail.csv', rows.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv');
+  });
+})();
+
+/* ================= date helpers ================= */
+// Returns a UTC-midnight Date for a cell value (Date, "YYYY-MM-DD[...]", "MM/DD/YYYY" or Excel serial), else null.
+function cellDate(v){
+  if (v == null || v === '') return null;
+  if (v instanceof Date) { const t = new Date(v.getTime() + 12 * 3600e3); return new Date(Date.UTC(t.getFullYear(), t.getMonth(), t.getDate())); }
+  if (typeof v === 'number') return new Date(Date.UTC(1899, 11, 30) + Math.floor(v) * 864e5);
+  const s = String(v).trim(); let m;
+  if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))) return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+  if ((m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/))) return new Date(Date.UTC(+m[3], +m[1] - 1, +m[2]));
+  return null;
+}
+const ymd = d => d.getUTCFullYear() + String(d.getUTCMonth() + 1).padStart(2, '0') + String(d.getUTCDate()).padStart(2, '0');
+const addDays = (d, n) => new Date(d.getTime() + n * 864e5);
+const sv = x => (x == null ? '' : String(x).trim());
+
+/* ================= MARRIOTT ================= */
+(function(){
+  const REQUIRED = ['IATA Number','Check/EFT Number:','Statement Date','Payment Amount:','Property Code','Property','City','State/Province','Country/Region','Guest Name','Confirmation Number','Arrival Date','Room Nights','Hotel Currency:','Room Revenue','Hotel Commission','Commission Paid','Status'];
+  const STATUS = {PAID:'CB', NETX:'NC', CXLD:'NC'};
+  let res = null;
+
+  wireDrop(document.querySelector('[data-for="m-file"]'), async files => {
+    $('m-work').hidden = true; note('m-loadMsg', 'ok', 'Reading ' + esc(files[0].name) + '…');
+    try { await loadScript(CDN.xlsx); convert(files[0].name, await readAs(files[0], 'readAsArrayBuffer')); }
+    catch (err) { note('m-loadMsg', 'bad', esc(err.message)); }
+  });
+
+  function splitName(raw){
+    const p = sv(raw).split('/').map(x => x.trim());
+    let first = p.length > 1 ? p[1] : '';
+    if (['MR','MRS','MS','DR','MISS'].includes(first.toUpperCase())) first = '';
+    return [p[0], first];
+  }
+
+  function convert(name, buf){
+    const wb = XLSX.read(buf, {type:'array', cellDates:true});
+    const ws = wb.Sheets['Statement Detail'];
+    if (!ws) throw new Error('No "Statement Detail" sheet in this file. Is it the Marriott AP statement?');
+    const df = XLSX.utils.sheet_to_json(ws, {defval:null, raw:true});
+    if (!df.length) throw new Error('The Statement Detail sheet is empty.');
+    const missing = REQUIRED.filter(c => !(c in df[0]));
+    if (missing.length) throw new Error('Statement is missing expected columns: ' + missing.join(', ') + '. Marriott may have changed the report layout.');
+
+    df.forEach((r, idx) => {
+      r._idx = idx;
+      r._conf = sv(r['Confirmation Number']);
+      r._arr = cellDate(r['Arrival Date']);
+      if (!r._arr) throw new Error(`Row ${idx + 2}: arrival date "${sv(r['Arrival Date'])}" is not a date.`);
+      const nights = Math.trunc(Number(r['Room Nights']) || 0);
+      r._dep = addDays(r._arr, Math.max(nights, 0));
+      r._rev = cents(r['Room Revenue']); r._hc = cents(r['Hotel Commission']); r._paid = cents(r['Commission Paid']);
+    });
+
+    // merge lines sharing confirmation + property (blank confirmations stay as their own lines)
+    const rows = [], seen = new Set();
+    for (const r of df) {
+      if (r._conf === '') { rows.push({...r, _n:1}); continue; }
+      const key = r._conf + '\u0001' + sv(r['Property Code']);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const g = df.filter(x => x._conf === r._conf && x['Property Code'] === r['Property Code']);
+      const m = {...g[0], _n:g.length};
+      m._arr = new Date(Math.min(...g.map(x => x._arr.getTime())));
+      m._dep = new Date(Math.max(...g.map(x => x._dep.getTime())));
+      m._rev = g.reduce((a, x) => a + x._rev, 0); m._hc = g.reduce((a, x) => a + x._hc, 0); m._paid = g.reduce((a, x) => a + x._paid, 0);
+      if (g.some(x => x['Status'] === 'PAID')) m['Status'] = 'PAID';
+      rows.push(m);
+    }
+
+    const f0 = df[0];
+    const iata = String(Math.trunc(Number(f0['IATA Number'])));
+    const paymentId = digits(sv(f0['Check/EFT Number:'])) || '0';
+    const sd = cellDate(f0['Statement Date']);
+    if (!sd) throw new Error('Statement Date "' + sv(f0['Statement Date']) + '" is not a date.');
+    const stmtDate = ymd(sd);
+    const stmtAmt = cents(f0['Payment Amount:']);
+
+    const lines = rows.map((r, i) => {
+      const [last, first] = splitName(r['Guest Name']);
+      const country = sv(r['Country/Region']); let state = sv(r['State/Province']);
+      if (state === country && !['US','CA'].includes(country)) state = '';
+      r._code = STATUS[sv(r['Status'])] || 'NC';
+      return tacsLine({i:i + 1, paymentId, tag:'MARRIOTT', last, first, code:r._code, conf:sv(r['Confirmation Number']),
+        arrival:ymd(r._arr), departure:ymd(r._dep), revenue:r._rev, reportCom:r._hc, reportCcy:sv(r['Hotel Currency:']), payCom:r._paid,
+        groupCode:'MARRIOTT', groupName:'MARRIOTT INTERNATIONAL', propCode:sv(r['Property Code']), propName:sv(r['Property']),
+        city:sv(r['City']), state, country, iata, payDate:stmtDate});
+    });
+    const total = rows.reduce((a, r) => a + r._paid, 0);
+    const ok = total === stmtAmt;
+    res = {name:tacsName(paymentId, 'MARRIOTT'), text:tacsFile(lines), ok};
+
+    note('m-loadMsg', 'ok', `Loaded <b>${esc(name)}</b>: check ${esc(sv(f0['Check/EFT Number:']))}, statement ${ymdSlash(stmtDate)}.`);
+    tiles('m-tiles', [
+      ['Statement lines', df.length, 'Rows on the Marriott statement'],
+      ['TACS lines', rows.length, (df.length - rows.length) + ' merged into shared confirmations'],
+      ['Commission paid', m2(total), 'Sum of TACS lines'],
+      ['Statement payment', m2(stmtAmt), 'Payment Amount on statement']]);
+    note('m-check', ok ? 'ok' : 'bad', ok ? 'Totals match. OK to import.' : `Totals do not match: lines total ${m2(total)} vs. payment ${m2(stmtAmt)} (difference ${m2(stmtAmt - total)}). Do not import until resolved.`);
+    $('m-ackWrap').hidden = ok; $('m-ack').checked = false; $('m-dl').disabled = !ok;
+    $('m-rows').innerHTML = rows.map((r, i) => `<tr class="${r._code === 'CB' ? '' : 'mute'}"><td>${i + 1}</td><td>${esc(sv(r['Guest Name']))}</td><td>${esc(sv(r['Property']))}</td><td>${esc(r._conf || '—')}</td><td>${ymdSlash(ymd(r._arr))}</td><td>${ymdSlash(ymd(r._dep))}</td><td><span class="pill">${r._code}</span></td><td>${esc(sv(r['Hotel Currency:']))}</td><td class="n">${n2(r._rev)}</td><td class="n">${n2(r._hc)}</td><td class="n"><b>${n2(r._paid)}</b></td><td class="n">${r._n > 1 ? r._n : ''}</td></tr>`).join('');
+    $('m-foot').innerHTML = `<tr><td></td><td colspan="7">Totals · ${rows.length} TACS lines from ${df.length} statement lines</td><td class="n">${n2(rows.reduce((a, r) => a + r._rev, 0))}</td><td class="n">${n2(rows.reduce((a, r) => a + r._hc, 0))}</td><td class="n">${n2(total)}</td><td></td></tr>`;
+    $('m-outName').textContent = 'Saves as ' + res.name;
+    $('m-work').hidden = false;
+  }
+  $('m-ack').addEventListener('change', () => { $('m-dl').disabled = !(res && (res.ok || $('m-ack').checked)); });
+  $('m-dl').addEventListener('click', () => { if (res) saveFile(res.name, res.text, 'text/plain'); });
+})();
+
+/* ================= EMPIRECLS ================= */
+(function(){
+  const LINE_RE = /^(.+?)\s+(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s+(\d{2}-[A-Z]+)\s+(\d+\*\d+)\s+([\d,]+\.\d{2})\s+([\d.]+)\s+([\d,]+\.\d{2})\s*$/;
+  const TOTAL_RE = /Total For .*# of Trips:\s+(\d+)\s+([\d,]+\.\d{2})\s+([\d,]+\.\d{2})/;
+  let parsed = null, res = null;
+
+  wireDrop(document.querySelector('[data-for="e-file"]'), async files => {
+    $('e-work').hidden = true; note('e-loadMsg', 'ok', 'Reading ' + esc(files[0].name) + '…');
+    try {
+      await loadScript(CDN.pdfjs);
+      pdfjsLib.GlobalWorkerOptions.workerSrc = CDN.pdfw;
+      const text = await pdfText(await readAs(files[0], 'readAsArrayBuffer'));
+      parsed = parse(text, files[0].name);
+      render();
+    } catch (err) { parsed = null; note('e-loadMsg', 'bad', esc(err.message)); }
+  });
+  ['e-ref','e-date'].forEach(id => $(id).addEventListener('input', () => { if (parsed) build(); }));
+
+  // Rebuild each printed line of the PDF: group text by baseline, order left to right,
+  // and put a space wherever there is a visible gap.
+  async function pdfText(buf){
+    const pdf = await pdfjsLib.getDocument({data:new Uint8Array(buf)}).promise;
+    const out = [];
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const page = await pdf.getPage(p);
+      const tc = await page.getTextContent();
+      const items = tc.items.filter(it => it.str !== undefined && it.str !== '').map(it => ({s:it.str, x:it.transform[4], y:it.transform[5], w:it.width, h:Math.abs(it.transform[3]) || 8}));
+      items.sort((a, b) => (b.y - a.y) || (a.x - b.x));
+      const lines = [];
+      for (const it of items) {
+        const ln = lines.length ? lines[lines.length - 1] : null;
+        if (ln && Math.abs(ln.y - it.y) <= Math.max(2, it.h * 0.35)) ln.items.push(it); else lines.push({y:it.y, items:[it]});
+      }
+      for (const ln of lines) {
+        ln.items.sort((a, b) => a.x - b.x);
+        let s = '', end = null;
+        for (const it of ln.items) {
+          if (end !== null && it.x - end > Math.max(1, it.h * 0.15)) s += ' ';
+          s += it.s; end = it.x + it.w;
+        }
+        out.push(s);
+      }
+    }
+    return out.join('\n');
+  }
+
+  function parse(text, name){
+    const recs = []; let grand = null;
+    for (const raw of text.split('\n')) {
+      const line = raw.trim();
+      const m = line.match(LINE_RE);
+      if (m) {
+        const mid = m[3].split(/\s+/).filter(Boolean);
+        const commaIdx = mid.map((t, i) => t.endsWith(',') ? i : -1).filter(i => i >= 0);
+        const passenger = commaIdx.length ? mid.slice(commaIdx[commaIdx.length - 1]).join(' ') : (mid.length ? mid[mid.length - 1] : '');
+        recs.push({customer:m[1], date:m[2], passenger, area:m[4], res:m[5], base:cents(m[6].replace(/,/g, '')), amt:cents(m[8].replace(/,/g, ''))});
+      }
+      const t = line.match(TOTAL_RE);
+      if (t) grand = {trips:+t[1], base:cents(t[2].replace(/,/g, '')), amt:cents(t[3].replace(/,/g, ''))};
+    }
+    if (!recs.length) throw new Error('No commission lines found. Is this an EmpireCLS Sales Commissions Report PDF?');
+    return {name, recs, grand};
+  }
+
+  function render(){
+    const {recs, grand, name} = parsed;
+    const total = recs.reduce((a, r) => a + r.amt, 0), base = recs.reduce((a, r) => a + r.base, 0);
+    note('e-loadMsg', 'ok', `Loaded <b>${esc(name)}</b>: ${recs.length} trips found.`);
+    tiles('e-tiles', [
+      ['Trips parsed', recs.length, grand ? `Report says ${grand.trips}` : 'Report total line not found'],
+      ['Commission base', m2(base), grand ? 'Report: ' + m2(grand.base) : ''],
+      ['Commission', m2(total), grand ? 'Report: ' + m2(grand.amt) : 'Check against the deposit'],
+      ['Customers', new Set(recs.map(r => r.customer)).size, 'Accounts on the report']]);
+    let ok = true;
+    if (!grand) { ok = false; note('e-check', 'warn', 'Could not find the report grand total line. Check the total against the check amount before importing.'); }
+    else if (grand.trips !== recs.length || grand.amt !== total) { ok = false; note('e-check', 'bad', `Parsed lines do not match the report totals (${recs.length} trips / ${m2(total)} vs. ${grand.trips} trips / ${m2(grand.amt)}). Do not import until resolved.`); }
+    else note('e-check', 'ok', 'Totals match the report. OK to import.');
+    parsed.ok = ok;
+    $('e-rows').innerHTML = recs.map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.passenger)}</td><td>${esc(r.date)}</td><td>${esc(r.res)}</td><td>${esc(r.area)}</td><td class="n">${n2(r.base)}</td><td class="n"><b>${n2(r.amt)}</b></td></tr>`).join('');
+    $('e-foot').innerHTML = `<tr><td></td><td colspan="4">Totals · ${recs.length} trips</td><td class="n">${n2(base)}</td><td class="n">${n2(total)}</td></tr>`;
+    $('e-ackWrap').hidden = ok; $('e-ack').checked = false;
+    $('e-work').hidden = false;
+    build();
+  }
+
+  function build(){
+    const ref = $('e-ref').value.trim(), dt = $('e-date').value;
+    const need = [];
+    if (!digits(ref)) need.push('the check / EFT number');
+    if (!dt) need.push('the payment date');
+    res = null;
+    if (need.length) { note('e-dlMsg', 'warn', 'Enter ' + need.join(' and ') + ' at the top of the page to build the file.'); $('e-outName').textContent = ''; updateBtn(); return; }
+    const paymentId = digits(ref), payDate = dt.replace(/-/g, '');
+    const lines = parsed.recs.map((r, i) => {
+      const parts = r.passenger.split(',').map(p => p.trim());
+      let last = parts[0], first = parts.length > 1 ? parts[1] : '';
+      if (last === '.' || last === '') { last = first; first = ''; }
+      const [mm, dd, yy] = r.date.split('/'); const d = yy + mm + dd;
+      const areaCity = r.area.split('-').slice(1).join('-');
+      return tacsLine({i:i + 1, paymentId, tag:'EMPIRECLS', last, first, code:'CB', conf:r.res, arrival:d, departure:d,
+        revenue:r.base, reportCom:r.amt, reportCcy:'USD', payCom:r.amt, groupCode:'EMPIRECLS', groupName:'EMPIRECLS WORLDWIDE CHAUFFEURED SERVICES',
+        propCode:r.area, propName:'EMPIRECLS ' + areaCity, city:areaCity, state:'', country:'US', iata:AGENCY.iata, payDate});
+    });
+    res = {name:tacsName(paymentId, 'EMPIRECLS'), text:tacsFile(lines)};
+    note('e-dlMsg', '', '');
+    $('e-outName').textContent = 'Saves as ' + res.name;
+    updateBtn();
+  }
+  function updateBtn(){ $('e-dl').disabled = !(res && parsed && (parsed.ok || $('e-ack').checked)); }
+  $('e-ack').addEventListener('change', updateBtn);
+  $('e-dl').addEventListener('click', () => { if (res) saveFile(res.name, res.text, 'text/plain'); });
+})();
+
+/* ================= HILTON PAYMENT REPORT ================= */
+(function(){
+  const NS = 'urn:schemas-microsoft-com:office:spreadsheet';
+  const DASH = '—', EN = '–';
+  let data = null;
+  // Python str.title(): upper-case a letter that follows a non-letter, lower-case the rest
+  const title = s => String(s || '').toLowerCase().replace(/(^|[^a-zà-ÿ])([a-zà-ÿ])/g, (m, a, b) => a + b.toUpperCase());
+  const stripCS = s => s.replace(/^[, ]+|[, ]+$/g, '');
+  const usd = c => c ? '$' + (c / 100).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) : EN;
+  const mdy = d => String(d.getUTCMonth() + 1).padStart(2, '0') + '/' + String(d.getUTCDate()).padStart(2, '0') + '/' + d.getUTCFullYear();
+  const mdy2 = d => mdy(d).slice(0, 6) + String(d.getUTCFullYear()).slice(2);
+  const longDate = d => d.toLocaleDateString('en-US', {month:'long', day:'2-digit', year:'numeric', timeZone:'UTC'});
+  const cmp = (a, b) => a < b ? -1 : a > b ? 1 : 0;
+
+  wireDrop(document.querySelector('[data-for="h-file"]'), async files => {
+    $('h-work').hidden = true;
+    try {
+      const xml = files.find(f => /\.xml$/i.test(f.name));
+      const txt = files.find(f => /\.txt$/i.test(f.name));
+      if (!xml) throw new Error('Include the TACS .xml file (it ends in _MPPEROm.xml). The _ELECMP.txt alone is not enough.');
+      const rows = parseXml(await readAs(xml, 'readAsText'));
+      let merged = 0, elecNote = '';
+      if (txt) {
+        const ids = parseElec(await readAs(txt, 'readAsText'));
+        if (ids) { rows.forEach(r => { if (!r['Meeting Id'] && ids.has(r['TACS Record ID'])) { r['Meeting Id'] = ids.get(r['TACS Record ID']); merged++; } }); elecNote = ` Meeting IDs merged from ${esc(txt.name)} for ${merged} booking(s).`; }
+        else elecNote = ` ${esc(txt.name)} has no Meeting Id column, so meeting IDs are blank.`;
+      } else elecNote = ' Add the matching _ELECMP.txt to fill in meeting IDs.';
+      data = prep(rows);
+      note('h-loadMsg', txt ? 'ok' : 'warn', `Loaded <b>${esc(xml.name)}</b>: ${data.df.length} bookings.` + elecNote);
+      render();
+    } catch (err) { data = null; note('h-loadMsg', 'bad', esc(err.message)); }
+  });
+
+  function parseXml(text){
+    const doc = new DOMParser().parseFromString(text, 'application/xml');
+    if (doc.getElementsByTagName('parsererror').length) throw new Error('This XML file could not be read.');
+    const sheet = doc.getElementsByTagNameNS(NS, 'Worksheet')[0] || doc;
+    const rows = [...sheet.getElementsByTagNameNS(NS, 'Row')].map(row => {
+      const vals = [];
+      for (const cell of row.getElementsByTagNameNS(NS, 'Cell')) {
+        const idx = cell.getAttributeNS(NS, 'Index') || cell.getAttribute('ss:Index');
+        if (idx) while (vals.length < +idx - 1) vals.push(null);
+        const d = cell.getElementsByTagNameNS(NS, 'Data')[0];
+        vals.push(d ? d.textContent : null);
+      }
+      return vals;
+    });
+    if (!rows.length || rows[0][0] !== 'Record Type') throw new Error('This does not look like a TACS remittance XML (no "Record Type" header).');
+    const hdr = rows[0];
+    const out = rows.slice(1).map(r => Object.fromEntries(hdr.map((h, i) => [h, r[i] == null ? null : r[i]]))).filter(r => r['Record Type'] === 'G');
+    if (!out.length) throw new Error('No booking (G) records found in this XML.');
+    return out;
+  }
+  function parseElec(text){
+    const lines = text.split(/\r?\n/).filter(Boolean);
+    const hdr = lines[0].split('|'); const iId = hdr.indexOf('TACS Record ID'), iM = hdr.indexOf('Meeting Id');
+    if (iId < 0 || iM < 0) return null;
+    const map = new Map();
+    lines.slice(1).forEach(l => { const f = l.split('|'); if (f[iM] && !map.has(f[iId])) map.set(f[iId], f[iM]); });
+    return map;
+  }
+
+  function prep(rows){
+    const df = rows.map(r => {
+      const o = {...r};
+      o.rev = cents(r['Revenue']); o.com = cents(r['Pay Com']);
+      o.arr = cellDate(String(r['Arrival'] || '').slice(0, 10)); o.dep = cellDate(String(r['Departure'] || '').slice(0, 10)); o.pay = cellDate(String(r['Pay Date'] || '').slice(0, 10));
+      let g = title(((r['First Name'] || '') + ' ' + (r['Last Name'] || '')).trim());
+      if (/tbd/i.test(g)) g = '(TBD ' + EN + ' unassigned)'; else if (g === '') g = '(Group)';
+      o.guest = g;
+      o.nights = o.arr && o.dep ? Math.round((o.dep - o.arr) / 864e5) : '';
+      o.type = {CM:'Commission', NC:'No Commission'}[r['Txn Cd']] || 'N/A';
+      o.meeting = r['Meeting Id'] || DASH;
+      o.inv = r['Invoice Number'] || null;
+      o.propShort = title(r['Property Name'] || '');
+      o.loc = stripCS(title(r['Property City'] || '') + ', ' + (r['Property State Code'] || ''));
+      return o;
+    });
+    df.sort((a, b) => cmp(a['Property Name'] || '', b['Property Name'] || '') || ((a.arr ? a.arr.getTime() : 0) - (b.arr ? b.arr.getTime() : 0)) || cmp(a['Last Name'] || '￿', b['Last Name'] || '￿'));
+    const groups = [];
+    df.forEach(r => { const k = r['Property Name'] || ''; let g = groups[groups.length - 1]; if (!g || g.key !== k) groups.push(g = {key:k, rows:[]}); g.rows.push(r); });
+    groups.forEach(g => { const inv = [...new Set(g.rows.map(r => r.inv).filter(Boolean))]; g.inv = inv.length ? inv.join(', ') : DASH; g.rev = g.rows.reduce((a, r) => a + r.rev, 0); g.com = g.rows.reduce((a, r) => a + r.com, 0); });
+    const f0 = df[0];
+    const payor = title(f0['Hotel Group Name'] || '');
+    return {df, groups, f0, payor, payorShort:title((f0['Hotel Group Name'] || 'Hotel').split(/\s+/)[0]), pid:f0['Payment ID'], pay:f0.pay,
+      agency:f0['Agency Name'] || '', tacsId:f0['Tacs agency Id'] || '', payee:f0['Payee ID from Payor'] || '',
+      rev:df.reduce((a, r) => a + r.rev, 0), com:df.reduce((a, r) => a + r.com, 0),
+      nCM:df.filter(r => r.type === 'Commission').length, nNC:df.filter(r => r.type === 'No Commission').length, nNA:df.filter(r => r.type === 'N/A').length};
+  }
+
+  const baseName = () => `${data.payorShort} TACS Commission Payment ${data.pid}`;
+
+  function render(){
+    const d = data;
+    tiles('h-tiles', [
+      ['Payment', 'ID ' + esc(d.pid), 'Paid ' + (d.pay ? longDate(d.pay) : '')],
+      ['Properties', d.groups.length, d.payor],
+      ['Bookings', d.df.length, `${d.nCM} CM · ${d.nNC} NC · ${d.nNA} placeholders`],
+      ['Commission paid', m2(d.com), 'On ' + m2(d.rev) + ' room revenue']]);
+    $('h-sum').innerHTML = d.groups.map(g => `<tr><td>${esc(g.rows[0].propShort)}</td><td>${esc(g.rows[0].loc)}</td><td>${esc(g.rows[0].meeting)}</td><td>${esc(g.inv)}</td><td class="n">${g.rows.length}</td><td class="n">${n2(g.rev)}</td><td class="n">${n2(g.com)}</td><td class="n">${g.rev ? (g.com / g.rev * 100).toFixed(1) + '%' : '0.0%'}</td></tr>`).join('');
+    $('h-sumFoot').innerHTML = `<tr><td colspan="4">Total</td><td class="n">${d.df.length}</td><td class="n">${n2(d.rev)}</td><td class="n">${n2(d.com)}</td><td class="n">${d.rev ? (d.com / d.rev * 100).toFixed(1) + '%' : '0.0%'}</td></tr>`;
+    $('h-detail').innerHTML = d.groups.map(g => g.rows.map(r => `<tr class="${r.type === 'Commission' ? '' : 'mute'}"><td>${esc(r.guest)}</td><td>${esc(r['Confirmation'] || DASH)}</td><td>${esc(r.type)}</td><td>${r.arr ? mdy(r.arr) : ''}</td><td>${r.dep ? mdy(r.dep) : ''}</td><td class="n">${r.nights}</td><td>${esc(r.propShort)}</td><td>${esc(r.inv || DASH)}</td><td class="n">${n2(r.rev)}</td><td class="n">${n2(r.com)}</td></tr>`).join('')
+      + `<tr class="sub"><td colspan="8">${esc(g.rows[0].propShort)} subtotal</td><td class="n">${n2(g.rev)}</td><td class="n">${n2(g.com)}</td></tr>`).join('');
+    $('h-outName').textContent = 'Saves as “' + baseName() + '.xlsx / .pdf”';
+    note('h-dlMsg', '', '');
+    $('h-work').hidden = false;
+  }
+
+  /* ---------- Excel (mirrors tacs_convert.py build_xlsx) ---------- */
+  $('h-xlsx').addEventListener('click', async () => {
+    if (!data) return;
+    const btn = $('h-xlsx'); btn.disabled = true;
+    try { await loadScript(CDN.exceljs); const buf = await buildXlsx(data); saveFile(baseName() + '.xlsx', new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})); }
+    catch (err) { note('h-dlMsg', 'bad', esc(err.message)); }
+    btn.disabled = false;
+  });
+
+  async function buildXlsx(d){
+    const CH = 'FF242021', G1 = 'FF5E5B5C', G2 = 'FF848484', LT = 'FFF2F2F2', LN = 'FFD9D9D9';
+    const F = (o) => Object.assign({name:'Arial'}, o);
+    const thin = {style:'thin', color:{argb:LN}}, med = {style:'medium', color:{argb:CH}};
+    const fill = argb => ({type:'pattern', pattern:'solid', fgColor:{argb}});
+    const wb = new ExcelJS.Workbook(); wb.calcProperties.fullCalcOnLoad = true;
+    const detailStart = 7; let drow = detailStart; const pr = new Map();
+    d.groups.forEach(g => { pr.set(g, [drow, drow + g.rows.length - 1]); drow += g.rows.length + 2; });
+    const paid = d.pay ? longDate(d.pay) : '';
+
+    const ws = wb.addWorksheet('Summary', {views:[{showGridLines:false}]});
+    [34,18,12,12,10,14,15,10].forEach((w, i) => ws.getColumn(i + 1).width = w);
+    const put = (sh, addr, v, font, align) => { const c = sh.getCell(addr); c.value = v; if (font) c.font = F(font); if (align) c.alignment = {horizontal:align}; return c; };
+    put(ws, 'A1', 'chai', {size:22, bold:true, color:{argb:CH}}); put(ws, 'A2', 'TRAVEL ADVISORS', {size:9, bold:true, color:{argb:G1}});
+    put(ws, 'H1', 'TACS COMMISSION PAYMENT', {size:11, bold:true, color:{argb:CH}}, 'right');
+    put(ws, 'H2', d.payor, {size:9, color:{argb:G1}}, 'right');
+    put(ws, 'H3', `Payment ID ${d.pid}  ·  Paid ${paid}`, {size:9, color:{argb:G2}}, 'right');
+    put(ws, 'A5', 'PAYMENT SUMMARY BY PROPERTY', {size:12, bold:true, color:{argb:CH}});
+    const hr = 6;
+    ['Property','Location','Meeting ID','Invoice #','Bookings','Room Revenue','Commission Paid','Eff. Rate'].forEach((h, j) => {
+      const c = ws.getCell(hr, j + 1); c.value = h; c.font = F({size:10, bold:true, color:{argb:'FFFFFFFF'}}); c.fill = fill(CH); c.alignment = {horizontal:j < 4 ? 'left' : 'right'}; });
+    let r = hr + 1;
+    d.groups.forEach((g, i) => {
+      const [s, e] = pr.get(g);
+      const vals = [g.rows[0].propShort, g.rows[0].loc, g.rows[0].meeting, g.inv, g.rows.length,
+        {formula:`SUM(Detail!I${s}:I${e})`, result:g.rev / 100}, {formula:`SUM(Detail!J${s}:J${e})`, result:g.com / 100}];
+      vals.forEach((v, j) => { const c = ws.getCell(r, j + 1); c.value = v; c.font = F({size:10, color:{argb:CH}}); c.border = {bottom:thin}; if (j >= 4) c.alignment = {horizontal:'right'}; });
+      ws.getCell(r, 6).numFmt = '$#,##0.00'; ws.getCell(r, 7).numFmt = '$#,##0.00';
+      const rc = ws.getCell(r, 8); rc.value = {formula:`IF(F${r}=0,0,G${r}/F${r})`, result:g.rev ? g.com / g.rev : 0}; rc.numFmt = '0.0%';
+      rc.font = F({size:10, color:{argb:G1}}); rc.alignment = {horizontal:'right'}; rc.border = {bottom:thin};
+      if (i % 2 === 1) for (let j = 1; j <= 8; j++) ws.getCell(r, j).fill = fill(LT);
+      r++;
+    });
+    const tot = r;
+    put(ws, 'A' + tot, 'TOTAL', {size:10, bold:true, color:{argb:CH}});
+    [[5,'E',d.df.length],[6,'F',d.rev / 100],[7,'G',d.com / 100]].forEach(([col, L, res]) => { const c = ws.getCell(tot, col); c.value = {formula:`SUM(${L}${hr + 1}:${L}${tot - 1})`, result:res}; c.font = F({size:10, bold:true, color:{argb:CH}}); });
+    const tc = ws.getCell(tot, 8); tc.value = {formula:`IF(F${tot}=0,0,G${tot}/F${tot})`, result:d.rev ? d.com / d.rev : 0}; tc.font = F({size:10, bold:true, color:{argb:CH}});
+    for (let j = 1; j <= 8; j++) { const c = ws.getCell(tot, j); c.border = {top:med, bottom:med}; if (j >= 5) c.alignment = {horizontal:'right'}; }
+    ws.getCell(tot, 6).numFmt = '$#,##0.00'; ws.getCell(tot, 7).numFmt = '$#,##0.00'; ws.getCell(tot, 8).numFmt = '0.0%';
+    r = tot + 2;
+    [['Transactions:', `${d.nCM} commissionable (CM), ${d.nNC} non-commissionable (NC), ${d.nNA} unassigned/group placeholders`],
+     ['Agency:', `${d.agency} · TACS Agency ID ${d.tacsId} · Payee ${d.payee}`],
+     ['Source:', `TACS electronic remittance XML, ${d.payor}, paid ${d.pay ? mdy(d.pay) : ''}`]].forEach(([l, t]) => {
+      put(ws, 'A' + r, l, {size:8, bold:true, color:{argb:G1}}); put(ws, 'B' + r, t, {size:8, color:{argb:G2}}); r++; });
+
+    const w2 = wb.addWorksheet('Detail', {views:[{state:'frozen', ySplit:6, showGridLines:false}]});
+    [26,14,13,12,12,8,30,10,13,14].forEach((w, i) => w2.getColumn(i + 1).width = w);
+    put(w2, 'A1', 'chai', {size:22, bold:true, color:{argb:CH}}); put(w2, 'A2', 'TRAVEL ADVISORS', {size:9, bold:true, color:{argb:G1}});
+    put(w2, 'J1', 'BOOKING DETAIL', {size:11, bold:true, color:{argb:CH}}, 'right');
+    put(w2, 'J2', `Payment ID ${d.pid}`, {size:9, color:{argb:G2}}, 'right');
+    put(w2, 'A4', 'ALL BOOKINGS BY PROPERTY', {size:12, bold:true, color:{argb:CH}});
+    ['Guest','Confirmation','Type','Arrival','Departure','Nights','Property','Invoice #','Room Revenue','Commission'].forEach((h, j) => {
+      const c = w2.getCell(6, j + 1); c.value = h; c.font = F({size:9, bold:true, color:{argb:'FFFFFFFF'}}); c.fill = fill(CH); c.alignment = {horizontal:j >= 8 ? 'right' : 'left'}; });
+    r = detailStart;
+    d.groups.forEach(g => {
+      let band = false;
+      g.rows.forEach(row => {
+        const vals = [row.guest, row['Confirmation'] || DASH, row.type, row.arr, row.dep, row.nights, row.propShort, row.inv || DASH, row.rev / 100, row.com / 100];
+        const grey = row.type !== 'Commission';
+        vals.forEach((v, j) => { const c = w2.getCell(r, j + 1); c.value = v; c.font = F({size:9, color:{argb:grey ? G2 : CH}}); c.border = {bottom:thin};
+          if (j === 3 || j === 4) c.numFmt = 'mm/dd/yyyy';
+          if (j === 8 || j === 9) { c.numFmt = '$#,##0.00;($#,##0.00);"–"'; c.alignment = {horizontal:'right'}; }
+          if (j === 5) c.alignment = {horizontal:'right'};
+          if (band) c.fill = fill(LT); });
+        band = !band; r++;
+      });
+      const [s, e] = pr.get(g);
+      put(w2, 'A' + r, `${g.rows[0].propShort} subtotal`, {size:9, bold:true, color:{argb:CH}});
+      w2.getCell(r, 9).value = {formula:`SUM(I${s}:I${e})`, result:g.rev / 100};
+      w2.getCell(r, 10).value = {formula:`SUM(J${s}:J${e})`, result:g.com / 100};
+      for (let j = 1; j <= 10; j++) { const c = w2.getCell(r, j); c.border = {top:med}; if (j >= 9) { c.numFmt = '$#,##0.00'; c.font = F({size:9, bold:true, color:{argb:CH}}); c.alignment = {horizontal:'right'}; } }
+      r += 2;
+    });
+    put(w2, 'A' + r, 'GRAND TOTAL', {size:10, bold:true, color:{argb:CH}});
+    const subs = d.groups.map(g => pr.get(g)[1] + 1);
+    w2.getCell(r, 9).value = {formula:subs.map(x => 'I' + x).join('+'), result:d.rev / 100};
+    w2.getCell(r, 10).value = {formula:subs.map(x => 'J' + x).join('+'), result:d.com / 100};
+    for (let j = 1; j <= 10; j++) { const c = w2.getCell(r, j); c.border = {top:med, bottom:med}; if (j >= 9) { c.numFmt = '$#,##0.00'; c.font = F({size:10, bold:true, color:{argb:CH}}); c.alignment = {horizontal:'right'}; } }
+    w2.autoFilter = `A6:J${detailStart + d.df.length - 1}`;
+    return wb.xlsx.writeBuffer();
+  }
+
+  /* ---------- PDF (mirrors tacs_convert.py build_pdf) ---------- */
+  $('h-pdf').addEventListener('click', async () => {
+    if (!data) return;
+    const btn = $('h-pdf'); btn.disabled = true;
+    try { await loadScript(CDN.jspdf); await loadScript(CDN.autotable); saveFile(baseName() + '.pdf', buildPdf(data)); }
+    catch (err) { note('h-dlMsg', 'bad', esc(err.message)); }
+    btn.disabled = false;
+  });
+
+  function buildPdf(d){
+    const {jsPDF} = window.jspdf;
+    const doc = new jsPDF({unit:'pt', format:'letter'});
+    const W = 612, H = 792, IN = 72, L = 0.75 * IN, R = W - 0.75 * IN, TOP = 1.35 * IN, BOT = 0.8 * IN;
+    const CH = [36,32,33], G1 = [94,91,92], G2 = [132,132,132], LT = [242,242,242], LN = [217,217,217];
+    const paid = d.pay ? longDate(d.pay) : '';
+    const margin = {top:TOP, bottom:BOT, left:L, right:W - R};
+    let y = TOP;
+    const para = (txt, size, bold, color, before, after) => {
+      y += before || 0; doc.setFont('helvetica', bold ? 'bold' : 'normal'); doc.setFontSize(size); doc.setTextColor(...color);
+      const lines = doc.splitTextToSize(txt, R - L);
+      if (y + lines.length * size * 1.2 > H - BOT) { doc.addPage(); y = TOP; }
+      lines.forEach(l => { y += size; doc.text(l, L, y); y += size * 0.2; });
+      y += after || 0;
+    };
+    para('Payment Summary by Property', 11, true, CH, 0, 6);
+    const body = d.groups.map(g => [g.rows[0].propShort, g.rows[0].loc, g.rows[0].meeting, g.inv, String(g.rows.length), usd(g.rev), usd(g.com)]);
+    doc.autoTable({startY:y, margin, head:[['Property','Location','Meeting ID','Invoice #','Bookings','Room Revenue','Commission']],
+      body, foot:[['TOTAL','','','',String(d.df.length), usd(d.rev), usd(d.com)]], showFoot:'lastPage',
+      theme:'plain', styles:{font:'helvetica', fontSize:8.5, textColor:CH, cellPadding:{top:4, bottom:4, left:4, right:4}, lineColor:LN, valign:'middle'},
+      headStyles:{fillColor:CH, textColor:255, fontStyle:'bold', overflow:'visible'}, footStyles:{fontStyle:'bold', textColor:CH, lineWidth:{top:1, bottom:1}, lineColor:CH},
+      bodyStyles:{lineWidth:{bottom:0.4}}, alternateRowStyles:{fillColor:LT},
+      columnStyles:{0:{cellWidth:2.05 * IN}, 1:{cellWidth:1.05 * IN}, 2:{cellWidth:0.75 * IN}, 3:{cellWidth:0.75 * IN}, 4:{cellWidth:0.6 * IN, halign:'right'}, 5:{cellWidth:0.9 * IN, halign:'right'}, 6:{cellWidth:0.9 * IN, halign:'right'}},
+      didParseCell: c => { if (c.section !== 'body' && c.column.index >= 4) c.cell.styles.halign = 'right'; }});
+    y = doc.lastAutoTable.finalY + 4;
+    para(`${d.nCM} commissionable bookings (CM) · ${d.nNC} non-commissionable (NC) · ${d.nNA} group/unassigned placeholders. All amounts USD.`, 8, false, G2, 2, 10);
+    y += 8;
+    d.groups.forEach(g => {
+      para(`${g.rows[0].propShort} — ${g.rows[0].loc}  ·  Meeting ${g.rows[0].meeting}  ·  Invoice ${g.inv}`, 10, true, CH, 10, 4);
+      if (y > H - BOT - 60) { doc.addPage(); y = TOP; }
+      const rows = g.rows.map(r => [r.guest, r['Confirmation'] || DASH, {Commission:'CM', 'No Commission':'NC'}[r.type] || DASH,
+        r.arr ? mdy2(r.arr) : '', r.dep ? mdy2(r.dep) : '', String(r.nights), usd(r.rev), usd(r.com)]);
+      doc.autoTable({startY:y, margin, head:[['Guest','Confirmation','Type','Arrival','Departure','Nts','Revenue','Commission']],
+        body:rows, foot:[['Subtotal','','','','','', usd(g.rev), usd(g.com)]], showFoot:'lastPage',
+        theme:'plain', styles:{font:'helvetica', fontSize:7.8, textColor:CH, cellPadding:{top:2.5, bottom:2.5, left:4, right:4}, lineColor:LN},
+        headStyles:{fillColor:CH, textColor:255, fontStyle:'bold', overflow:'visible'}, footStyles:{fontStyle:'bold', textColor:CH, lineWidth:{top:0.9}, lineColor:CH},
+        bodyStyles:{lineWidth:{bottom:0.3}}, alternateRowStyles:{fillColor:LT},
+        columnStyles:{0:{cellWidth:1.75 * IN}, 1:{cellWidth:1.0 * IN}, 2:{cellWidth:0.45 * IN, halign:'center'}, 3:{cellWidth:0.72 * IN}, 4:{cellWidth:0.72 * IN}, 5:{cellWidth:0.42 * IN, halign:'right'}, 6:{cellWidth:0.97 * IN, halign:'right'}, 7:{cellWidth:0.97 * IN, halign:'right'}},
+        didParseCell: c => {
+          if (c.section !== 'body') { if (c.column.index >= 5) c.cell.styles.halign = 'right'; if (c.column.index === 2) c.cell.styles.halign = 'center'; }
+          if (c.section === 'body' && g.rows[c.row.index].type !== 'Commission') c.cell.styles.textColor = G2; }});
+      y = doc.lastAutoTable.finalY;
+    });
+    const pages = doc.getNumberOfPages();
+    for (let p = 1; p <= pages; p++) {
+      doc.setPage(p);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(22); doc.setTextColor(...CH); doc.text('chai', L, H - (H - 0.85 * IN));
+      doc.setFontSize(7.5); doc.setTextColor(...G1); doc.text('T R A V E L   A D V I S O R S', L + 1, 0.98 * IN);
+      doc.setFontSize(10); doc.setTextColor(...CH); doc.text('TACS COMMISSION PAYMENT STATEMENT', R, 0.72 * IN, {align:'right'});
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...G1); doc.text(`Payor: ${d.payor}`, R, 0.86 * IN, {align:'right'});
+      doc.setTextColor(...G2); doc.text(`Payment ID ${d.pid}  ·  Paid ${paid}`, R, 0.98 * IN, {align:'right'});
+      doc.setDrawColor(...CH); doc.setLineWidth(1.2); doc.line(L, 1.12 * IN, R, 1.12 * IN);
+      doc.setFontSize(7); doc.setTextColor(...G2);
+      doc.text(`${d.agency}  ·  TACS Agency ID ${d.tacsId}  ·  Payee ${d.payee}`, L, H - 0.55 * IN);
+      doc.text(`Page ${p}`, R, H - 0.55 * IN, {align:'right'});
+    }
+    return doc.output('blob');
+  }
+})();
+})();
+</script>
+</body>
+</html>
