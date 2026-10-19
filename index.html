@@ -126,7 +126,7 @@
   <!-- ============ ONYX ============ -->
   <main id="v-onyx" class="view" hidden>
     <h1>Onyx Fee Adjuster</h1>
-    <p class="lede">Onyx takes its fee as one lump sum at the end of the statement. This takes it off each booking's USD commission instead, so every line reconciles in Trams.</p>
+    <p class="lede">Onyx takes its fee as one lump sum at the end of the statement. This takes it off each booking's USD commission instead, so every line reconciles in Trams. The fee on any one booking is capped (default $60).</p>
     <section>
       <h2>1 · Load Onyx file</h2>
       <div class="drop" data-for="o-file" tabindex="0" role="button" aria-label="Choose Onyx file">
@@ -144,6 +144,7 @@
             <button type="button" data-p="3.5">3.5%</button><button type="button" data-p="5">5%</button><button type="button" data-p="custom">Custom</button>
           </div>
           <label class="inline" id="o-customWrap" hidden><input type="number" id="o-custom" step="0.01" min="0" max="100" value="4"> %</label>
+          <label class="inline" for="o-cap">Max fee per booking $<input type="number" id="o-cap" step="1" min="0" value="60"></label>
           <label class="inline"><input type="checkbox" id="o-tie" checked> Tie to Onyx fee total (spread rounding pennies)</label>
         </div>
         <div id="o-pctMsg"></div>
@@ -413,8 +414,12 @@ route();
       ['Commission USD', m2(usd), 'Before Onyx fee'],
       ['Onyx fee (lump sum)', m2(fee), src.implied.toFixed(2) + '% of commission'],
       ['Net payment', m2(net), 'What Onyx actually paid']]);
-    if (fee > 0) pct = Math.abs(src.implied - 3.5) < Math.abs(src.implied - 5) ? 3.5 : 5;
-    const off = fee > 0 && Math.abs(src.implied - pct) >= 0.1;
+    // pick the standard rate whose capped per-booking total lands closest to Onyx's fee
+    if (fee > 0) {
+      const gap = r => Math.abs(feesFor(r).reduce((a, x) => a + x.fee, 0) - fee);
+      pct = gap(3.5) < gap(5) ? 3.5 : 5;
+    }
+    const off = fee > 0 && gap2(pct) > Math.max(src.rcIdx.length, 100);
     setPct(off ? 'custom' : pct, off ? +src.implied.toFixed(2) : null);
     $('o-tie').checked = fee > 0; $('o-tie').disabled = fee === 0;
     $('o-outName').textContent = 'Saves as ' + outName();
@@ -424,6 +429,15 @@ route();
   $('o-seg').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setPct(b.dataset.p === 'custom' ? 'custom' : +b.dataset.p); });
   $('o-custom').addEventListener('input', () => { pct = parseFloat($('o-custom').value) || 0; compute(); });
   $('o-tie').addEventListener('change', compute);
+  $('o-cap').addEventListener('input', compute);
+  const capCents = () => { const v = parseFloat($('o-cap').value); return v > 0 ? Math.round(v * 100) : Infinity; };
+  const gap2 = r => Math.abs(feesFor(r).reduce((a, x) => a + x.fee, 0) - src.fee);
+  // fee per booking at rate r (in %), limited to the per-booking cap
+  function feesFor(r){
+    const cap = capCents();
+    return src.rcIdx.map(i => { const usd = toC(src.lines[i][RC.usd]); const exact = usd > 0 ? usd * r / 100 : 0;
+      const raw = Math.round(exact); return {i, usd, exact, fee: Math.min(raw, cap), capped: raw > cap}; });
+  }
   function setPct(p, customVal){
     [...$('o-seg').children].forEach(b => b.classList.toggle('on', String(b.dataset.p) === String(p)));
     $('o-customWrap').hidden = p !== 'custom';
@@ -434,27 +448,31 @@ route();
 
   function compute(){
     if (!src) return;
-    const L = src.lines, rate = pct / 100;
-    const items = src.rcIdx.map(i => { const usd = toC(L[i][RC.usd]); const exact = usd > 0 ? usd * rate : 0; return {i, usd, exact, fee: Math.round(exact)}; });
+    const L = src.lines, cap = capCents();
+    const items = feesFor(pct);
     let sum = items.reduce((a, x) => a + x.fee, 0);
     const straight = sum, eligible = items.filter(x => x.usd > 0), target = src.fee;
+    const nCapped = items.filter(x => x.capped).length;
+    const spreadable = eligible.filter(x => !x.capped);
     let tied = false, msg = '', cls = 'ok';
     if ($('o-tie').checked && target > 0) {
       const diff = target - sum;
-      if (Math.abs(diff) <= eligible.length && Math.abs(src.implied - pct) < 0.25) {
-        const order = [...eligible].sort((a, b) => diff > 0 ? (a.fee - a.exact) - (b.fee - b.exact) : (b.fee - b.exact) - (a.fee - a.exact));
+      const room = diff > 0 ? spreadable.filter(x => x.fee < cap) : spreadable;
+      if (Math.abs(diff) <= room.length) {
+        const order = [...room].sort((a, b) => diff > 0 ? (a.fee - a.exact) - (b.fee - b.exact) : (b.fee - b.exact) - (a.fee - a.exact));
         for (let k = 0; k < Math.abs(diff); k++) order[k].fee += Math.sign(diff);
         sum = target; tied = true;
         msg = diff === 0 ? `Straight ${pct}% per booking already equals the Onyx fee of ${m2(target)}.`
           : `Straight ${pct}% per booking comes to ${m2(straight)}. ${Math.abs(diff)} booking(s) got a 1¢ ${diff > 0 ? 'increase' : 'decrease'} so fees total exactly ${m2(target)}.`;
       } else {
         cls = 'warn';
-        msg = `${pct}% per booking comes to ${m2(straight)}, but the Onyx fee on this statement is ${m2(target)} (${src.implied.toFixed(2)}%). Check the rate. Using straight ${pct}% with no penny spreading; the ${m2(target - straight)} difference stays on the trailer as a fee.`;
+        msg = `${pct}% per booking${cap < Infinity ? ' (capped at ' + m2(cap) + ')' : ''} comes to ${m2(straight)}, but the Onyx fee on this statement is ${m2(target)} (${src.implied.toFixed(2)}%). Check the rate and cap. Using straight ${pct}% with no penny spreading; the ${m2(target - straight)} difference stays on the trailer as a fee.`;
       }
     } else if (target > 0 && straight !== target) {
       cls = Math.abs(target - straight) > eligible.length ? 'warn' : 'ok';
       msg = `Straight ${pct}% totals ${m2(straight)} vs. Onyx fee ${m2(target)}. The ${m2(target - straight)} difference stays on the trailer as a fee.`;
     }
+    if (nCapped) msg += ` ${nCapped} booking(s) hit the ${m2(cap)} per-booking cap.`;
     const skipped = items.length - eligible.length;
     if (skipped) msg += ` ${skipped} booking(s) with $0 (or negative) commission get no fee and are left unchanged.`;
     note('o-pctMsg', cls, msg);
@@ -474,7 +492,7 @@ route();
     note('o-checkMsg', 'bad', netOk ? '' : `Net ${m2(newNet)} does not match the Onyx deposit ${m2(src.net)}. Do not import this file.`);
     $('o-dl').disabled = !netOk;
     $('o-rows').innerHTML = items.map((x, n) => { const f = L[x.i];
-      return `<tr class="${x.usd > 0 ? '' : 'mute'}"><td>${n + 1}</td><td>${esc([f[RC.last].trim(), f[RC.first].trim()].filter(Boolean).join(', '))}</td><td>${esc(f[RC.hotel].trim())}</td><td>${esc(f[RC.conf].trim())}</td><td>${ymdSlash(f[RC.arrive])}</td><td>${esc(f[RC.cur])}</td><td class="n">${n2(toC(f[RC.commLocal]))}</td><td class="n">${n2(x.usd)}</td><td class="n">${n2(-x.fee)}</td><td class="n"><b>${n2(x.usd - x.fee)}</b></td></tr>`; }).join('');
+      return `<tr class="${x.usd > 0 ? '' : 'mute'}"><td>${n + 1}</td><td>${esc([f[RC.last].trim(), f[RC.first].trim()].filter(Boolean).join(', '))}</td><td>${esc(f[RC.hotel].trim())}</td><td>${esc(f[RC.conf].trim())}</td><td>${ymdSlash(f[RC.arrive])}</td><td>${esc(f[RC.cur])}</td><td class="n">${n2(toC(f[RC.commLocal]))}</td><td class="n">${n2(x.usd)}</td><td class="n">${x.capped ? '<span class="pill">cap</span> ' : ''}${n2(-x.fee)}</td><td class="n"><b>${n2(x.usd - x.fee)}</b></td></tr>`; }).join('');
     $('o-foot').innerHTML = `<tr><td></td><td colspan="6">Totals · ${items.length} bookings</td><td class="n">${n2(src.usd)}</td><td class="n">${n2(-sum)}</td><td class="n">${n2(newUsd)}</td></tr>`;
   }
   const outName = () => src.name.replace(/(\.[^.]*)?$/, m => '_ADJ' + (m || '.txt'));
@@ -482,10 +500,10 @@ route();
   $('o-dlcsv').addEventListener('click', () => {
     if (!last) return;
     const q = v => '"' + String(v).replace(/"/g, '""') + '"';
-    const rows = [['Onyx ID','Guest','Hotel','Confirmation','Arrive','Currency','Commission Local','Commission USD','Fee %','Fee USD','Net USD']];
+    const rows = [['Onyx ID','Guest','Hotel','Confirmation','Arrive','Currency','Commission Local','Commission USD','Fee %','Capped','Fee USD','Net USD']];
     last.items.forEach(x => { const f = src.lines[x.i];
-      rows.push([f[RC.id], [f[RC.last].trim(), f[RC.first].trim()].filter(Boolean).join(', '), f[RC.hotel].trim(), f[RC.conf].trim(), ymdSlash(f[RC.arrive]), f[RC.cur], f2(toC(f[RC.commLocal])), f2(x.usd), x.usd > 0 ? pct : 0, f2(x.fee), f2(x.usd - x.fee)]); });
-    rows.push(['','TOTAL','','','','','',f2(src.usd),'',f2(last.sum),f2(last.newUsd)]);
+      rows.push([f[RC.id], [f[RC.last].trim(), f[RC.first].trim()].filter(Boolean).join(', '), f[RC.hotel].trim(), f[RC.conf].trim(), ymdSlash(f[RC.arrive]), f[RC.cur], f2(toC(f[RC.commLocal])), f2(x.usd), x.usd > 0 ? pct : 0, x.capped ? 'Y' : '', f2(x.fee), f2(x.usd - x.fee)]); });
+    rows.push(['','TOTAL','','','','','',f2(src.usd),'','',f2(last.sum),f2(last.newUsd)]);
     saveFile(src.name.replace(/\.[^.]*$/, '') + '_fee_detail.csv', rows.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv');
   });
 })();
